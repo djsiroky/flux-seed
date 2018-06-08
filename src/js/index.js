@@ -15,7 +15,7 @@ function hideLogin() {
  */
 function showLogin() {
   // ensure that the user is logged out and no longer stored on the page
-  helpers.logout()
+  //helpers.logout()
   // show the login button
   $('#login').css('display', 'flex')
   // attach event handler to the login button
@@ -96,18 +96,18 @@ function render(data) {
     $('#geometry').hide()
   }
   //check to see if the data is a known type of geometry
-  else if (FluxViewport.isKnownGeom(data.value)) {
+  else if (FluxViewport.isKnownGeom(data)) {
     //add it to the viewport
-    viewport.setGeometryEntity(data.value)
+    viewport.setGeometryEntity(data)
     //swap the display types
     $('#geometry').show()
     $('#display').hide()
   } else {
     // not geometry, so figure out how to best render the type
     // check if the value is a number
-    var d = parseFloat(data.value)
+    var d = parseFloat(data)
     // otherwise make it into a string
-    if (isNaN(d)) d = JSON.stringify(data.value)
+    if (isNaN(d)) d = JSON.stringify(data)
     else d = d + ''
     // calculate the approximate display size for the text
     // based on the ammount of content (length)
@@ -208,30 +208,52 @@ function initViewport() {
   viewport.setClearColor(0xffffff)
 }
 
+function fetchData() {
+  $.ajax({
+	type: "POST", 
+	url: 'http://104.198.224.55:5000/geo/', 
+	data: JSON.stringify(
+		{
+		coordinates:[
+			-122.41654719999997,
+			37.766998099999995,
+			-122.40654719999998,
+			37.7769981]
+		,features:{
+			highway:true,
+			building:true,
+			building_3d:true,
+			building_3d_random:true,
+			topography:true,
+			contours:true,
+			waterway:true,
+			leisure:true
+		},
+		contour_interval:1,
+		random_min:10,
+		random_max:20,
+		high_res:false
+		}), 
+	contentType: 'application/json; charset=utf-8', 
+	dataType:'json', 
+	success: function(data) {
+		 	console.log(data)
+			let arrays = [];
+			Object.keys(data).forEach((key) => {
+				arrays.push(data[key]);
+			})
+			render(Array.prototype.concat.apply([], arrays));
+		 }
+	})
+}
+
+var data;
 /**
  * Start the application.
  */
 function init() {
-  // Check if we're coming back from Flux with the login credentials.
-  helpers.storeFluxUser()
-  // check that the user is logged in, otherwise show the login page
-    .then(function() { return helpers.isLoggedIn() })
-    .then(function(isLoggedIn) {
-      if (isLoggedIn) {
-        // if logged in, make sure the login page is hidden
-        hideLogin()
-        // create the viewport
-        initViewport()
-        // prepare the cell (key) select boxes
-        initCells()
-        // prepare the create key input + button
-        initCreate()
-        // get the user's projects from Flux
-        fetchProjects()
-      } else {
-        showLogin();
-      }
-    })
+   initViewport();
+   fetchData();
 }
 
 // When the window is done loading, start the application.
